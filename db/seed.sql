@@ -37,8 +37,10 @@ SELECT s.id,
 FROM shipments s,
      LATERAL generate_series(1, 1 + (s.id * 31) % 19) AS k;
 
+\o /dev/null
 SELECT setval(pg_get_serial_sequence('shipments', 'id'), (SELECT max(id) FROM shipments));
 SELECT setval(pg_get_serial_sequence('tracking_events', 'id'), (SELECT max(id) FROM tracking_events));
+\o
 
 COMMIT;
 

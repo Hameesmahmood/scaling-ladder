@@ -35,8 +35,9 @@ opaque (base64 of the last row's `created_at` and `id`).
 
 ## Data
 
-Seeded deterministically inside Postgres (`setseed` and `generate_series`, so seeding takes about a
-minute, not an hour of inserts):
+Seeded deterministically inside Postgres with `generate_series`, every value derived from the row
+number. The full seed takes about 9 minutes on this laptop (535 s, mostly the 10 million events and
+their foreign-key checks), once; the ladder never reseeds, it only adds or drops indexes:
 
 - 100,000 customers.
 - 1,000,000 shipments, each with a tracking number like `SL0001234567`, a customer, a service level,
