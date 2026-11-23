@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet restore
+      - run: dotnet build --no-restore -c Release
+      - name: Tests (real Postgres and Redis via Testcontainers)
+        run: dotnet test --no-build -c Release
+
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t tracker-api .
