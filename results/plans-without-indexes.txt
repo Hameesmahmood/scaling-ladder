@@ -1,0 +1,65 @@
+--- GET /v1/shipments/{trackingNumber}: find the shipment
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Gather (actual time=51.794..67.151 rows=1.00 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=14260 read=3505
+   ->  Parallel Seq Scan on shipments (actual time=37.740..47.081 rows=0.33 loops=3)
+         Filter: (tracking_number = 'SL0000500100'::text)
+         Rows Removed by Filter: 333333
+         Buffers: shared hit=14260 read=3505
+ Planning:
+   Buffers: shared hit=62 read=1
+ Planning Time: 0.811 ms
+ Execution Time: 67.257 ms
+(12 rows)
+
+--- GET /v1/shipments/{trackingNumber}: its 20 most recent events
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit (actual time=806.024..820.161 rows=15.00 loops=1)
+   Buffers: shared hit=22632 read=72006
+   ->  Gather Merge (actual time=800.700..814.834 rows=15.00 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=22632 read=72006
+         ->  Sort (actual time=781.059..781.061 rows=5.00 loops=3)
+               Sort Key: occurred_at DESC
+               Sort Method: quicksort  Memory: 25kB
+               Buffers: shared hit=22632 read=72006
+               Worker 0:  Sort Method: quicksort  Memory: 26kB
+               Worker 1:  Sort Method: quicksort  Memory: 25kB
+               ->  Parallel Seq Scan on tracking_events (actual time=609.815..780.819 rows=5.00 loops=3)
+                     Filter: (shipment_id = 500100)
+                     Rows Removed by Filter: 3340002
+                     Buffers: shared hit=22556 read=72006
+ Planning:
+   Buffers: shared hit=55 read=3
+ Planning Time: 0.733 ms
+ Execution Time: 841.782 ms
+(20 rows)
+
+--- GET /v1/customers/{customerId}/shipments: the first page
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
+ Limit (actual time=94.302..102.734 rows=10.00 loops=1)
+   Buffers: shared hit=14980 read=2788
+   ->  Sort (actual time=94.301..102.731 rows=10.00 loops=1)
+         Sort Key: created_at DESC, id DESC
+         Sort Method: quicksort  Memory: 26kB
+         Buffers: shared hit=14980 read=2788
+         ->  Gather (actual time=51.240..102.659 rows=10.00 loops=1)
+               Workers Planned: 2
+               Workers Launched: 2
+               Buffers: shared hit=14977 read=2788
+               ->  Parallel Seq Scan on shipments (actual time=27.155..48.981 rows=3.33 loops=3)
+                     Filter: (customer_id = 4242)
+                     Rows Removed by Filter: 333330
+                     Buffers: shared hit=14977 read=2788
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 0.242 ms
+ Execution Time: 102.772 ms
+(18 rows)
+

@@ -1,0 +1,51 @@
+--- GET /v1/shipments/{trackingNumber}: find the shipment
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Index Scan using shipments_tracking_number on shipments (actual time=0.067..0.068 rows=1.00 loops=1)
+   Index Cond: (tracking_number = 'SL0000500100'::text)
+   Index Searches: 1
+   Buffers: shared hit=1 read=3
+ Planning:
+   Buffers: shared hit=103 read=2
+ Planning Time: 1.431 ms
+ Execution Time: 0.156 ms
+(8 rows)
+
+--- GET /v1/shipments/{trackingNumber}: its 20 most recent events
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
+ Limit (actual time=0.086..0.109 rows=15.00 loops=1)
+   Buffers: shared hit=6 read=3
+   ->  Index Scan using tracking_events_shipment on tracking_events (actual time=0.085..0.106 rows=15.00 loops=1)
+         Index Cond: (shipment_id = 500100)
+         Index Searches: 1
+         Buffers: shared hit=6 read=3
+ Planning:
+   Buffers: shared hit=77 read=1
+ Planning Time: 0.850 ms
+ Execution Time: 0.141 ms
+(10 rows)
+
+--- GET /v1/customers/{customerId}/shipments: the first page
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit (actual time=0.215..0.217 rows=10.00 loops=1)
+   Buffers: shared hit=16 read=3
+   ->  Sort (actual time=0.214..0.215 rows=10.00 loops=1)
+         Sort Key: created_at DESC, id DESC
+         Sort Method: quicksort  Memory: 26kB
+         Buffers: shared hit=16 read=3
+         ->  Bitmap Heap Scan on shipments (actual time=0.075..0.151 rows=10.00 loops=1)
+               Recheck Cond: (customer_id = 4242)
+               Heap Blocks: exact=10
+               Buffers: shared hit=10 read=3
+               ->  Bitmap Index Scan on shipments_customer (actual time=0.046..0.046 rows=10.00 loops=1)
+                     Index Cond: (customer_id = 4242)
+                     Index Searches: 1
+                     Buffers: shared read=3
+ Planning:
+   Buffers: shared hit=28
+ Planning Time: 0.285 ms
+ Execution Time: 0.272 ms
+(18 rows)
+
