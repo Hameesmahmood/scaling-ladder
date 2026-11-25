@@ -14,7 +14,9 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     options.AbortOnConnectFail = false;
     return ConnectionMultiplexer.Connect(options);
 });
+builder.Services.AddSingleton<ShipmentStore>();
 builder.Services.AddProblemDetails();
+builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
 var app = builder.Build();
 app.UseExceptionHandler();
@@ -50,6 +52,8 @@ app.MapGet("/readyz", async (NpgsqlDataSource db, IConnectionMultiplexer redis, 
         ? Results.Ok(new { status = "ready" })
         : Results.Problem(statusCode: 503, title: "Not ready", detail: $"Unreachable: {string.Join(", ", failures)}.");
 });
+
+app.MapShipmentEndpoints();
 
 app.Run();
 

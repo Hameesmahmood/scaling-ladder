@@ -19,6 +19,8 @@ public static class Database
             Timeout = 5,
             CommandTimeout = 30,
         };
+        // Dapper maps snake_case columns (tracking_number) onto PascalCase properties (TrackingNumber).
+        Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
         return new NpgsqlDataSourceBuilder(connection.ConnectionString).Build();
     }
 }
