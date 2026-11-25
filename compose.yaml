@@ -14,11 +14,15 @@ services:
       - db:/var/lib/postgresql
     cpus: 2
     mem_limit: 2g
+    # pg_isready opens a session, and Postgres counts it against the database it names. Checking the
+    # "postgres" database keeps these out of the tracker database's counters, which the ladder reads.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tracker -d tracker"]
-      interval: 2s
+      test: ["CMD-SHELL", "pg_isready -U tracker -d postgres"]
+      start_period: 60s
+      start_interval: 1s
+      interval: 30s
       timeout: 2s
-      retries: 30
+      retries: 3
 
   redis:
     image: redis:8-alpine

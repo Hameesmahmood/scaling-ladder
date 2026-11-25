@@ -81,9 +81,19 @@ def counters():
     return {"sessions": int(row[0]), "rowsRead": int(row[1])}
 
 
+def build_api():
+    """Builds the API image once per run, retrying: fetching the .NET base image can time out."""
+    for attempt in range(1, 4):
+        if subprocess.run(["docker", "compose", "build", "api"], cwd=ROOT, capture_output=True).returncode == 0:
+            return
+        print(f"  building the API image failed (attempt {attempt}), retrying", flush=True)
+        time.sleep(10)
+    sys.exit("Couldn't build the API image.")
+
+
 def start_api(step):
     env = {**os.environ, "TRACKER_POOLING": str(STEPS[step]["pooling"]).lower()}
-    run("docker", "compose", "up", "-d", "--build", "--wait", "api", env=env)
+    run("docker", "compose", "up", "-d", "--no-build", "--wait", "api", env=env)
 
 
 def k6(rate, seconds):
@@ -193,6 +203,8 @@ def main():
     for step in steps:
         if step not in STEPS:
             sys.exit(f"No step {step}. Steps: {sorted(STEPS)}")
+    build_api()
+    for step in steps:
         measure(step, args.quick)
 
 
