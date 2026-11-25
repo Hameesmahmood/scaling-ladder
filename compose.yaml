@@ -32,5 +32,43 @@ services:
       timeout: 2s
       retries: 30
 
+  api:
+    build: .
+    environment:
+      Tracker__Database: Host=db;Username=tracker;Password=tracker;Database=tracker
+      Tracker__Redis: redis:6379
+      # Set per step by scripts/ladder.py.
+      Tracker__Pooling: ${TRACKER_POOLING:-false}
+      Tracker__MaxPoolSize: ${TRACKER_MAX_POOL:-20}
+      Logging__LogLevel__Default: Warning
+    ports:
+      - "8090:8080"
+    cpus: 1
+    mem_limit: 512m
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # The image has no curl, so the health check is plain bash, as in Week 1.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /readyz HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q '^HTTP/1.1 200' <&3"]
+      # Every 2 s while starting, then every 30 s: with pooling off, each check opens a database
+      # connection, and frequent checks would inflate the connections the ladder counts per request.
+      interval: 30s
+      timeout: 2s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
+
+  # The load generator. Only runs on demand: docker compose run --rm k6 run /load/workload.js
+  k6:
+    image: grafana/k6:2.3.0
+    profiles: ["load"]
+    environment:
+      TARGET: ${TARGET:-http://api:8080}
+    volumes:
+      - ./load:/load:ro
+
 volumes:
   db:

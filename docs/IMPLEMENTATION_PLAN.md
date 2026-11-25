@@ -69,12 +69,18 @@ The traffic mix:
 
 ## Two measurements per step
 
-1. **Latency at a fixed light rate.** p50, p95 and p99 over 60 seconds at a rate every step can
-   sustain, after a 15-second warm-up. This shows what one request costs. The rate is chosen on
-   Tuesday, at about half of what the baseline can sustain, and then fixed for every step.
-2. **Capacity.** The highest arrival rate the API sustains for 30 seconds with p99 under 250 ms,
-   errors under 0.1% and no dropped iterations (k6 couldn't start a request on time). Found by a
-   search over rates. This shows how much load the step can take.
+1. **Latency at a fixed light rate.** p50, p95 and p99 over 3 minutes at 0.5 requests a second,
+   after a 15-second warm-up: 90 requests, so p99 is close to the slowest of them, and the README
+   says so. This shows what one request costs. The rate is about half of what the baseline can
+   sustain (one baseline lookup takes about 1.6 s), and it's the same for every step.
+2. **Capacity.** The highest arrival rate the step sustains with errors under 0.1%, no dropped
+   iterations (k6 couldn't start a request on time), and p99 under 250 ms, or under twice the
+   step's own light-rate p99 if that's higher. Only the baseline needs that second rule: one of its
+   requests takes 1.6 s on its own, so it could never meet 250 ms at any rate, and "capacity 0"
+   would hide that it does keep up at about one request a second. Twice the single-request time
+   still catches the point where requests start to queue. Found by doubling the rate from 0.25 a
+   second until a probe fails, then bisecting to within 10%. Each probe runs long enough for about
+   300 requests (30 s to 2 minutes).
 
 Results for each step go to `results/step-N.json` with the commit, the configuration, the k6
 summary and the database's own counters (queries run, connections opened).
