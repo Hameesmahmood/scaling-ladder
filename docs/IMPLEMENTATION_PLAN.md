@@ -141,6 +141,10 @@ Integration tests run against real Postgres and Redis in Testcontainers.
   second, below step 2. The cause was the method, not the cache: its search started at 1,024 on a
   freshly started API, which fails a first heavy probe whatever the step (steps 2 and 3 both did,
   then passed every run after). Each search now runs 30 s at its starting rate, discarded.
+- **A failed probe is run twice more, and passes on 2 of 3.** Step 3's next search measured 1,920 a
+  second, ended by one probe that 22 late starts out of 61,000 failed. Repeated fixed-rate runs
+  (`scripts/repeat.py`, 3 runs each) showed step 3 passing 2,560 a second 3 times in 3 and step 2
+  failing it 3 times in 3, so one run near the limit can't decide a step's capacity.
 - **Redis is emptied, and its statistics reset, at the start of every step**, and every probe
   records the hit rate, keys and memory, so a step never inherits another's warm cache.
 

@@ -160,7 +160,7 @@ def capacity(quick, limit_ms, start):
     is too much), then narrows the gap by bisection."""
     probes = []
 
-    def probe(rate):
+    def attempt(rate):
         time.sleep(5)  # let any queue from the last probe drain
         before = counters()
         result = k6(rate, probe_seconds(rate, quick))
@@ -171,6 +171,13 @@ def capacity(quick, limit_ms, start):
               f"dropped {result['dropped']}  {'ok' if result['sustained'] else 'too much'}"
               + (f"  cache hits {hit:.0%}" if (hit := result["perRequest"]["cacheHitRate"]) is not None else ""), flush=True)
         return result["sustained"]
+
+    def probe(rate):
+        # Near its limit a step passes some runs and fails others (scripts/repeat.py: step 2 passed
+        # 2,048 a second 2 times in 3), and one unlucky run used to end the search. So a failure is
+        # rerun, and the rate counts as sustained if 2 of 3 runs pass.
+        # After a failure, both reruns must pass, so the first failed rerun settles it.
+        return attempt(rate) or (attempt(rate) and attempt(rate))
 
     low, high, rate = None, None, start
     while rate <= (8 if quick else 8192):
