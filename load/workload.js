@@ -7,6 +7,7 @@
 // The mix: 90% look up a shipment (80% of those from the 10,000 in transit, 20% from all 1,000,000),
 // 8% list a customer's shipments, 2% record a tracking event on a shipment in transit.
 import http from "k6/http";
+import { Counter } from "k6/metrics";
 
 const TARGET = __ENV.TARGET || "http://api:8080";
 const RATE = Number(__ENV.RATE || 10);
@@ -14,6 +15,12 @@ const DURATION = __ENV.DURATION || "60s";
 const SHIPMENTS = 1_000_000;
 const CUSTOMERS = 100_000;
 const ENDPOINTS = ["get_shipment", "list_shipments", "post_event"];
+// With CHECK_STALE=1, every write becomes read, write, read again, and the second read is checked
+// for the event just recorded: the customer refreshing after the courier's scan. Off for the ladder
+// itself, because it adds two reads per write and changes the mix.
+const CHECK_STALE = __ENV.CHECK_STALE === "1";
+const readsAfterWrite = new Counter("reads_after_write");
+const staleReads = new Counter("stale_reads");
 
 export const options = {
   discardResponseBodies: true,
@@ -46,11 +53,28 @@ export default function () {
   } else if (r < 0.98) {
     const customer = 1 + Math.floor(Math.random() * CUSTOMERS);
     http.get(`${TARGET}/v1/customers/${customer}/shipments?limit=20`, params("list_shipments"));
-  } else {
+  } else if (!CHECK_STALE) {
     const body = JSON.stringify({ status: "in_transit", location: "Load test hub" });
     http.post(`${TARGET}/v1/shipments/${trackingNumber(hot())}/events`, body,
       params("post_event", { headers: { "Content-Type": "application/json" } }));
+  } else {
+    readAfterWrite(trackingNumber(hot()));
   }
+}
+
+function readAfterWrite(number) {
+  const url = `${TARGET}/v1/shipments/${number}`;
+  http.get(url, params("get_shipment"));
+  // A location no other request uses, so the check can't be fooled by another write to this shipment.
+  const location = `Check ${__VU}-${__ITER}`;
+  const posted = http.post(`${url}/events`, JSON.stringify({ status: "in_transit", location }),
+    params("post_event", { headers: { "Content-Type": "application/json" } }));
+  if (posted.status !== 201) return;
+  const read = http.get(url, params("get_shipment", { responseType: "text" }));
+  if (read.status !== 200) return;
+  readsAfterWrite.add(1);
+  // Newest first, at most 20; a later write by someone else would push this one down, not out.
+  if (!read.json("events").some((e) => e.location === location)) staleReads.add(1);
 }
 
 // One line of JSON on stdout, for scripts/ladder.py to read.
@@ -70,6 +94,8 @@ export function handleSummary(data) {
     failedRate: m.http_req_failed?.values.rate ?? 0,
     dropped: m.dropped_iterations?.values.count ?? 0,
     latencyMs: latency(m.http_req_duration?.values) ?? { p50: null, p90: null, p95: null, p99: null, avg: null, max: null },
+    readsAfterWrite: m.reads_after_write?.values.count ?? 0,
+    staleReads: m.stale_reads?.values.count ?? 0,
     byEndpoint: Object.fromEntries(ENDPOINTS.map((n) => [n, latency(m[`http_req_duration{name:${n}}`]?.values)])),
   };
   return { stdout: JSON.stringify(result) + "\n" };

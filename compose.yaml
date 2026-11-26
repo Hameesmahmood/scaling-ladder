@@ -44,6 +44,9 @@ services:
       # Set per step by scripts/ladder.py.
       Tracker__Pooling: ${TRACKER_POOLING:-false}
       Tracker__MaxPoolSize: ${TRACKER_MAX_POOL:-20}
+      Tracker__Cache: ${TRACKER_CACHE:-false}
+      Tracker__CacheTtlSeconds: ${TRACKER_CACHE_TTL:-60}
+      Tracker__CacheInvalidation: ${TRACKER_CACHE_INVALIDATION:-true}
       Logging__LogLevel__Default: Warning
     ports:
       - "8090:8080"

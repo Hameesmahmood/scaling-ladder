@@ -10,11 +10,17 @@ builder.Services.AddSingleton(_ => Database.CreateDataSource(settings));
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
     var options = ConfigurationOptions.Parse(settings.Redis);
-    // Start even if Redis is down; /readyz reports it, and the cache steps fall back to Postgres.
+    // Start even if Redis is down; /readyz reports it, and the cache falls back to Postgres.
     options.AbortOnConnectFail = false;
+    // A cache must fail fast. By default commands queue while Redis reconnects, and every request
+    // would wait out the timeout before reaching Postgres.
+    options.BacklogPolicy = BacklogPolicy.FailFast;
+    options.ConnectTimeout = 1000;
+    options.AsyncTimeout = 1000;
     return ConnectionMultiplexer.Connect(options);
 });
 builder.Services.AddSingleton<ShipmentStore>();
+builder.Services.AddSingleton<ShipmentCache>();
 builder.Services.AddProblemDetails();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 

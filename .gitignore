@@ -7,3 +7,4 @@ obj/
 TestResults/
 .env
 results/*-quick.json
+__pycache__/

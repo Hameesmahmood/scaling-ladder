@@ -45,6 +45,13 @@ public sealed class Infrastructure : IAsyncLifetime
         return name;
     }
 
+    /// <summary>Empties Redis. Tests that use the cache call it first: every test database has the same tracking numbers.</summary>
+    public async Task FlushRedisAsync()
+    {
+        var result = await Redis.ExecAsync(["redis-cli", "FLUSHALL"]);
+        if (result.ExitCode != 0) throw new InvalidOperationException(result.Stderr);
+    }
+
     public string ConnectionStringFor(string database) =>
         new Npgsql.NpgsqlConnectionStringBuilder(PostgresUrl) { Database = database }.ConnectionString;
 

@@ -24,11 +24,13 @@ ROOT = Path(__file__).resolve().parent.parent
 # Each step is the previous one plus one change.
 STEPS = {
     0: {"name": "Baseline", "change": "Primary keys only, a new connection per request, no cache, one instance",
-        "indexes": False, "pooling": False},
+        "indexes": False, "pooling": False, "cache": False},
     1: {"name": "Indexes", "change": "Indexes matching each query's WHERE and ORDER BY",
-        "indexes": True, "pooling": False},
+        "indexes": True, "pooling": False, "cache": False},
     2: {"name": "Connection pooling", "change": "Npgsql's pool, 20 connections per instance",
-        "indexes": True, "pooling": True},
+        "indexes": True, "pooling": True, "cache": False},
+    3: {"name": "Cache-aside", "change": "Redis in front of GET shipment, 60-second TTL, deleted on every write",
+        "indexes": True, "pooling": True, "cache": True},
 }
 
 # Chosen from step 0's capacity (about half of it), then fixed for every step so they compare.
@@ -75,10 +77,34 @@ def set_indexes(on):
     return info
 
 
+def redis(*args):
+    return run("docker", "compose", "exec", "-T", "redis", "redis-cli", *args).strip()
+
+
+def redis_info():
+    lines = redis("INFO", "everything").splitlines()
+    return dict(line.split(":", 1) for line in lines if ":" in line and not line.startswith("#"))
+
+
 def counters():
-    """Postgres's own totals since it started: sessions (connections) opened, and rows read."""
+    """Running totals: Postgres's sessions (connections) opened and rows read, and Redis's cache
+    hits and misses (keyspace lookups: only GET shipment reads Redis)."""
     row = psql("SELECT sessions, tup_returned + tup_fetched FROM pg_stat_database WHERE datname = 'tracker'").split("|")
-    return {"sessions": int(row[0]), "rowsRead": int(row[1])}
+    info = redis_info()
+    return {"sessions": int(row[0]), "rowsRead": int(row[1]),
+            "cacheHits": int(info["keyspace_hits"]), "cacheMisses": int(info["keyspace_misses"])}
+
+
+def per_request(before, after, requests):
+    """Counters per request over a run, plus the cache's hit rate and Redis's memory at the end."""
+    delta = {k: after[k] - before[k] for k in after}
+    result = {k: round(v / max(requests, 1), 2) for k, v in delta.items()}
+    lookups = delta["cacheHits"] + delta["cacheMisses"]
+    result["cacheHitRate"] = round(delta["cacheHits"] / lookups, 3) if lookups else None
+    info = redis_info()
+    result["redisKeys"] = int(redis("DBSIZE"))
+    result["redisMemoryBytes"] = int(info["used_memory"])
+    return result
 
 
 def build_api():
@@ -91,13 +117,20 @@ def build_api():
     sys.exit("Couldn't build the API image.")
 
 
-def start_api(step):
-    env = {**os.environ, "TRACKER_POOLING": str(STEPS[step]["pooling"]).lower()}
+def start_api(step, **overrides):
+    """Starts the API with the step's settings (and any overrides, as TRACKER_* variables), with
+    Redis emptied, so no step inherits another's cache."""
+    config = STEPS[step]
+    settings = {"TRACKER_POOLING": config["pooling"], "TRACKER_CACHE": config["cache"], **overrides}
+    env = {**os.environ, **{k: str(v).lower() for k, v in settings.items()}}
     run("docker", "compose", "up", "-d", "--no-build", "--wait", "api", env=env)
+    redis("FLUSHALL")
+    redis("CONFIG", "RESETSTAT")
 
 
-def k6(rate, seconds):
-    out = run("docker", "compose", "run", "--rm", "-e", f"RATE={rate}", "-e", f"DURATION={seconds}s",
+def k6(rate, seconds, *env):
+    extra = [arg for e in env for arg in ("-e", e)]
+    out = run("docker", "compose", "run", "--rm", "-e", f"RATE={rate}", "-e", f"DURATION={seconds}s", *extra,
               "k6", "run", "--quiet", "--no-color", "/load/workload.js")
     return json.loads(out.strip().splitlines()[-1])
 
@@ -129,11 +162,14 @@ def capacity(quick, limit_ms, start):
 
     def probe(rate):
         time.sleep(5)  # let any queue from the last probe drain
+        before = counters()
         result = k6(rate, probe_seconds(rate, quick))
+        result["perRequest"] = per_request(before, counters(), result["requests"])
         result["sustained"] = sustains(result, limit_ms)
         probes.append(result)
         print(f"    {rate:>8g}/s  p99 {result['latencyMs']['p99']} ms  failed {result['failedRate']:.2%}  "
-              f"dropped {result['dropped']}  {'ok' if result['sustained'] else 'too much'}", flush=True)
+              f"dropped {result['dropped']}  {'ok' if result['sustained'] else 'too much'}"
+              + (f"  cache hits {hit:.0%}" if (hit := result["perRequest"]["cacheHitRate"]) is not None else ""), flush=True)
         return result["sustained"]
 
     low, high, rate = None, None, start
@@ -184,7 +220,7 @@ def measure(step, quick):
         "step": step, **config, "measuredAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "commit": commit + ("-dirty" if dirty else ""), "quick": quick,
         "criteria": {"p99BelowMs": limit_ms, "failedBelow": MAX_FAILED, "dropped": 0},
-        "light": {**light, "perRequest": {k: round((after[k] - before[k]) / max(light["requests"], 1), 2) for k in after}},
+        "light": {**light, "perRequest": per_request(before, after, light["requests"])},
         "capacity": {"sustainedRate": sustained, "probes": probes},
         "indexes": indexes,
     }

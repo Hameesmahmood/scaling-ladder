@@ -15,4 +15,16 @@ public sealed class TrackerSettings
 
     /// <summary>The pool's ceiling per instance, when pooling is on.</summary>
     public int MaxPoolSize { get; set; } = 20;
+
+    /// <summary>Step 3. Cache-aside in Redis for GET shipment.</summary>
+    public bool Cache { get; set; }
+
+    /// <summary>How long a cached shipment lives. The upper bound on how stale a read can be.</summary>
+    public int CacheTtlSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// Delete a shipment's cache entry when an event is recorded for it. On whenever the cache is;
+    /// only the tests switch it off, to show the stale reads it prevents.
+    /// </summary>
+    public bool CacheInvalidation { get; set; } = true;
 }

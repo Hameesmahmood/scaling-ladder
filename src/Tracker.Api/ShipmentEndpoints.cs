@@ -6,10 +6,13 @@ public static class ShipmentEndpoints
     {
         var v1 = app.MapGroup("/v1");
 
-        v1.MapGet("/shipments/{trackingNumber}", async (string trackingNumber, ShipmentStore store, CancellationToken ct) =>
-            await store.GetAsync(trackingNumber, ct) is { } shipment
-                ? Results.Ok(shipment)
-                : NotFound($"No shipment has tracking number {trackingNumber}."));
+        v1.MapGet("/shipments/{trackingNumber}", async (string trackingNumber, ShipmentCache cache, HttpContext http, CancellationToken ct) =>
+        {
+            var (shipment, result) = await cache.GetAsync(trackingNumber, ct);
+            // Says where the answer came from: hit, miss, off or unavailable. The tests read it.
+            http.Response.Headers["X-Cache"] = result.ToString().ToLowerInvariant();
+            return shipment is not null ? Results.Ok(shipment) : NotFound($"No shipment has tracking number {trackingNumber}.");
+        });
 
         v1.MapGet("/customers/{customerId:long}/shipments", async (long customerId, int? limit, string? cursor, ShipmentStore store, CancellationToken ct) =>
         {
@@ -22,7 +25,7 @@ public static class ShipmentEndpoints
                 : NotFound($"No customer has id {customerId}.");
         });
 
-        v1.MapPost("/shipments/{trackingNumber}/events", async (string trackingNumber, NewTrackingEvent body, ShipmentStore store, CancellationToken ct) =>
+        v1.MapPost("/shipments/{trackingNumber}/events", async (string trackingNumber, NewTrackingEvent body, ShipmentStore store, ShipmentCache cache, CancellationToken ct) =>
         {
             if (body.Status is null || !Statuses.All.Contains(body.Status))
                 return BadRequest($"status must be one of: {string.Join(", ", Statuses.All)}.");
@@ -30,9 +33,11 @@ public static class ShipmentEndpoints
                 return BadRequest("location is required, up to 100 characters.");
 
             var occurredAt = body.OccurredAt ?? DateTimeOffset.UtcNow;
-            return await store.AddEventAsync(trackingNumber, body.Status, body.Location.Trim(), occurredAt, ct) is { } created
-                ? Results.Created($"/v1/shipments/{trackingNumber}", created)
-                : NotFound($"No shipment has tracking number {trackingNumber}.");
+            var created = await store.AddEventAsync(trackingNumber, body.Status, body.Location.Trim(), occurredAt, ct);
+            if (created is null) return NotFound($"No shipment has tracking number {trackingNumber}.");
+            await cache.InvalidateAsync(trackingNumber);
+
+            return Results.Created($"/v1/shipments/{trackingNumber}", created);
         });
     }
 
