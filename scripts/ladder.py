@@ -207,7 +207,8 @@ def measure(step, quick):
     seconds = 10 if quick else 180
     print(f"  latency at {LIGHT_RATE}/s for {seconds} s", flush=True)
     light = k6(LIGHT_RATE, seconds)
-    after = counters()
+    # Right away: per_request also snapshots Redis's keys and memory, which the capacity search changes.
+    light["perRequest"] = per_request(before, counters(), light["requests"])
     print(f"    p50 {light['latencyMs']['p50']} ms  p95 {light['latencyMs']['p95']} ms  p99 {light['latencyMs']['p99']} ms", flush=True)
     limit_ms = max(P99_LIMIT_MS, round(2 * light["latencyMs"]["p99"]))
     start = 0.25 if quick else starting_rate(step)
@@ -227,7 +228,7 @@ def measure(step, quick):
         "step": step, **config, "measuredAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "commit": commit + ("-dirty" if dirty else ""), "quick": quick,
         "criteria": {"p99BelowMs": limit_ms, "failedBelow": MAX_FAILED, "dropped": 0},
-        "light": {**light, "perRequest": per_request(before, after, light["requests"])},
+        "light": light,
         "capacity": {"sustainedRate": sustained, "probes": probes},
         "indexes": indexes,
     }
