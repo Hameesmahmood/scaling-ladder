@@ -210,8 +210,15 @@ def measure(step, quick):
     after = counters()
     print(f"    p50 {light['latencyMs']['p50']} ms  p95 {light['latencyMs']['p95']} ms  p99 {light['latencyMs']['p99']} ms", flush=True)
     limit_ms = max(P99_LIMIT_MS, round(2 * light["latencyMs"]["p99"]))
+    start = 0.25 if quick else starting_rate(step)
+    # A freshly started API fails its first heavy probe whatever the step: .NET hasn't finished
+    # compiling the hot paths, and its thread pool grows only gradually. Measured: steps 2 and 3
+    # both dropped requests on a first 30 s at 1,024 a second, then passed every run after it. So
+    # warm up at the starting rate, discarded, or a step that starts high would be measured cold.
+    print(f"  warming up at {start}/s", flush=True)
+    k6(start, 5 if quick else 30)
     print(f"  capacity (p99 limit {limit_ms} ms)", flush=True)
-    sustained, probes = capacity(quick, limit_ms, 0.25 if quick else starting_rate(step))
+    sustained, probes = capacity(quick, limit_ms, start)
     print(f"  sustains {sustained}/s", flush=True)
 
     commit = run("git", "rev-parse", "--short", "HEAD").strip()

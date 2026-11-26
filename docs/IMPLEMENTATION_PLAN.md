@@ -116,12 +116,33 @@ breaks. The ladder itself is the performance evidence; these cover correctness a
 | Indexes | The lookup plan is an index scan | The plan is a sequential scan over 10 million rows |
 | Connection pooling | 200 requests open at most the pool size of connections | 200 requests open 200 connections |
 | Cache-aside and TTL | A second read doesn't query Postgres; after the TTL it does | Every read queries Postgres |
-| Invalidation | A read straight after a write sees the new status | The read returns the old status until the TTL expires (stale reads counted in the load test too) |
+| Invalidation | A read straight after a write sees the new status | The read returns the old status until the TTL expires (stale reads counted in the load test too: `scripts/stale_reads.py`) |
+| Failing fast when Redis is down | Reads and writes carry on through Postgres, each in milliseconds | Requests queue for the missing Redis and each waits out a 5-second timeout |
 | Stampede protection | 200 concurrent misses on one key run 1 query | They run 200 queries |
 | Load balancing | Killing one of three instances mid-run causes no failed `GET`s (Nginx retries idempotent requests on another instance) | Requests to the dead instance fail |
 | p99 (measurement) | Reported per step | An average that hides the slow tail (shown side by side once) |
 
 Integration tests run against real Postgres and Redis in Testcontainers.
+
+### Decisions made while building step 3
+
+- **Redis is an optimisation, never a dependency.** Any Redis error or timeout falls through to
+  Postgres. The client is set to fail fast (`BacklogPolicy.FailFast`, 1-second timeouts): its
+  default queues commands while it reconnects, which turned a dead cache into a 5-second wait on
+  every request.
+- **Delete after commit, not before.** Deleting first lets a read between the delete and the commit
+  refill the old row. The remaining race (a slow read refills the entry just after the delete) is
+  accepted: the TTL bounds it, and the stale-read experiment counts it.
+- **404s aren't cached.** The workload only asks for shipments that exist. A public API would cache
+  them briefly, so guessing tracking numbers can't go around the cache.
+- **The index write cost is measured with `pgbench`, not through the API** (`scripts/write_cost.py`).
+  Without indexes the API's write starts with a 70 ms lookup, which would hide what the indexes cost.
+- **The capacity search warms up at its starting rate first.** Step 3's first run measured 960 a
+  second, below step 2. The cause was the method, not the cache: its search started at 1,024 on a
+  freshly started API, which fails a first heavy probe whatever the step (steps 2 and 3 both did,
+  then passed every run after). Each search now runs 30 s at its starting rate, discarded.
+- **Redis is emptied, and its statistics reset, at the start of every step**, and every probe
+  records the hit rate, keys and memory, so a step never inherits another's warm cache.
 
 ## Code structure
 
