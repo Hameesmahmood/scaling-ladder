@@ -1,0 +1,97 @@
+{
+  "measuredAt": "2026-11-26T11:12:36+00:00",
+  "commit": "01149be",
+  "clients": 4,
+  "secondsPerRound": 30,
+  "write": "\\set id random(1, 1000000)\nBEGIN;\nINSERT INTO tracking_events (shipment_id, occurred_at, status, location) VALUES (:id, now(), 'in_transit', 'write-cost bench');\nUPDATE shipments SET status = status, updated_at = updated_at WHERE id = :id;\nCOMMIT;\n",
+  "medians": {
+    "perSecond": {
+      "withoutIndexes": 1367.8,
+      "withIndexes": 1241.2
+    },
+    "p50Ms": {
+      "withoutIndexes": 2.17,
+      "withIndexes": 2.25
+    },
+    "p99Ms": {
+      "withoutIndexes": 24.95,
+      "withIndexes": 26.05
+    },
+    "walBytesPerWrite": {
+      "withoutIndexes": 3512,
+      "withIndexes": 9042
+    }
+  },
+  "rounds": {
+    "withoutIndexes": [
+      {
+        "transactions": 41029,
+        "perSecond": 1367.8,
+        "latencyMs": {
+          "p50": 2.16,
+          "p95": 3.66,
+          "p99": 24.54,
+          "avg": 2.92
+        },
+        "walBytesPerWrite": 3512
+      },
+      {
+        "transactions": 41584,
+        "perSecond": 1386.3,
+        "latencyMs": {
+          "p50": 2.17,
+          "p95": 3.05,
+          "p99": 24.95,
+          "avg": 2.88
+        },
+        "walBytesPerWrite": 3355
+      },
+      {
+        "transactions": 5790,
+        "perSecond": 193.1,
+        "latencyMs": {
+          "p50": 13.85,
+          "p95": 48.41,
+          "p99": 78.69,
+          "avg": 20.65
+        },
+        "walBytesPerWrite": 7367
+      }
+    ],
+    "withIndexes": [
+      {
+        "transactions": 40052,
+        "perSecond": 1335.3,
+        "latencyMs": {
+          "p50": 2.25,
+          "p95": 3.18,
+          "p99": 25.5,
+          "avg": 2.99
+        },
+        "walBytesPerWrite": 9042
+      },
+      {
+        "transactions": 34365,
+        "perSecond": 1145.0,
+        "latencyMs": {
+          "p50": 2.12,
+          "p95": 15.31,
+          "p99": 37.99,
+          "avg": 3.49
+        },
+        "walBytesPerWrite": 9622
+      },
+      {
+        "transactions": 37233,
+        "perSecond": 1241.2,
+        "latencyMs": {
+          "p50": 2.4,
+          "p95": 4.07,
+          "p99": 26.05,
+          "avg": 3.22
+        },
+        "walBytesPerWrite": 8363
+      }
+    ]
+  }
+}
