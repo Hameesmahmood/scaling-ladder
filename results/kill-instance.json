@@ -1,0 +1,148 @@
+{
+  "step": 5,
+  "rate": 1000,
+  "seconds": 60,
+  "killAtSeconds": 20,
+  "measuredAt": "2026-11-27T10:55:25+00:00",
+  "commit": "4998c2e",
+  "withRetries": {
+    "rate": 1000,
+    "duration": "60s",
+    "requests": 60002,
+    "throughput": 999.97,
+    "failedRate": 3.333222225925803e-05,
+    "dropped": 0,
+    "latencyMs": {
+      "p50": 2.2,
+      "p90": 7.02,
+      "p95": 21.02,
+      "p99": 49.13,
+      "avg": 4.91,
+      "max": 205.18
+    },
+    "readsAfterWrite": 0,
+    "staleReads": 0,
+    "byEndpoint": {
+      "get_shipment": {
+        "p50": 1.81,
+        "p90": 6.85,
+        "p95": 20.94,
+        "p99": 49.22,
+        "avg": 4.83,
+        "max": 205.18
+      },
+      "list_shipments": {
+        "p50": 2.7,
+        "p90": 6.24,
+        "p95": 19.12,
+        "p99": 46.62,
+        "avg": 5.05,
+        "max": 113.7
+      },
+      "post_event": {
+        "p50": 5.4,
+        "p90": 12.95,
+        "p95": 28.4,
+        "p99": 54.36,
+        "avg": 8.13,
+        "max": 94.39
+      }
+    },
+    "failedByEndpoint": {
+      "get_shipment": {
+        "requests": 54217,
+        "failed": 0
+      },
+      "list_shipments": {
+        "requests": 4647,
+        "failed": 0
+      },
+      "post_event": {
+        "requests": 1138,
+        "failed": 2
+      }
+    },
+    "killedAtSeconds": 20.3,
+    "nginxErrors": {
+      "recv() failed": 19,
+      "upstream prematurely closed connection": 2
+    },
+    "nginxErrorSamples": [
+      "2026/11/27 10:53:18 [error] 22#22: *919 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 172.20.0.8, server: , request: \"POST /v1/shipments/SL0000382300/events HTTP/1.1\", upstream: \"http://172.20.0.5:8080/v1/shipments/SL0000382300/events\", host: \"nginx:80\"",
+      "2026/11/27 10:53:18 [error] 22#22: *847 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 172.20.0.8, server: , request: \"GET /v1/shipments/SL0000867500 HTTP/1.1\", upstream: \"http://172.20.0.5:8080/v1/shipments/SL0000867500\", host: \"nginx:80\"",
+      "2026/11/27 10:53:18 [error] 22#22: *944 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 172.20.0.8, server: , request: \"GET /v1/shipments/SL0000626969 HTTP/1.1\", upstream: \"http://172.20.0.5:8080/v1/shipments/SL0000626969\", host: \"nginx:80\"",
+      "2026/11/27 10:53:18 [error] 22#22: *916 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 172.20.0.8, server: , request: \"GET /v1/shipments/SL0000351300 HTTP/1.1\", upstream: \"http://172.20.0.5:8080/v1/shipments/SL0000351300\", host: \"nginx:80\"",
+      "2026/11/27 10:53:18 [error] 22#22: *855 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 172.20.0.8, server: , request: \"GET /v1/shipments/SL0000369473 HTTP/1.1\", upstream: \"http://172.20.0.5:8080/v1/shipments/SL0000369473\", host: \"nginx:80\""
+    ]
+  },
+  "withoutRetries": {
+    "rate": 1000,
+    "duration": "60s",
+    "requests": 60000,
+    "throughput": 999.93,
+    "failedRate": 0.00048333333333333334,
+    "dropped": 0,
+    "latencyMs": {
+      "p50": 1.73,
+      "p90": 4.6,
+      "p95": 6.06,
+      "p99": 33.48,
+      "avg": 3.22,
+      "max": 96.56
+    },
+    "readsAfterWrite": 0,
+    "staleReads": 0,
+    "byEndpoint": {
+      "get_shipment": {
+        "p50": 1.57,
+        "p90": 4.51,
+        "p95": 5.79,
+        "p99": 33.47,
+        "avg": 3.13,
+        "max": 96.56
+      },
+      "list_shipments": {
+        "p50": 2.56,
+        "p90": 3.6,
+        "p95": 5.08,
+        "p99": 31.64,
+        "avg": 3.44,
+        "max": 55.83
+      },
+      "post_event": {
+        "p50": 4.9,
+        "p90": 7.29,
+        "p95": 10.2,
+        "p99": 38.25,
+        "avg": 6.22,
+        "max": 78.44
+      }
+    },
+    "failedByEndpoint": {
+      "get_shipment": {
+        "requests": 53945,
+        "failed": 24
+      },
+      "list_shipments": {
+        "requests": 4806,
+        "failed": 3
+      },
+      "post_event": {
+        "requests": 1249,
+        "failed": 2
+      }
+    },
+    "killedAtSeconds": 20.3,
+    "nginxErrors": {
+      "upstream prematurely closed connection": 2,
+      "recv() failed": 27
+    },
+    "nginxErrorSamples": [
+      "2026/11/27 10:54:44 [error] 30#30: *844 upstream prematurely closed connection while reading response header from upstream, client: 172.20.0.8, server: , request: \"GET /v1/shipments/SL0000154800 HTTP/1.1\", upstream: \"http://172.20.0.5:8080/v1/shipments/SL0000154800\", host: \"nginx:80\"",
+      "2026/11/27 10:54:44 [error] 30#30: *899 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 172.20.0.8, server: , request: \"GET /v1/shipments/SL0000715300 HTTP/1.1\", upstream: \"http://172.20.0.5:8080/v1/shipments/SL0000715300\", host: \"nginx:80\"",
+      "2026/11/27 10:54:44 [error] 30#30: *879 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 172.20.0.8, server: , request: \"GET /v1/shipments/SL0000059200 HTTP/1.1\", upstream: \"http://172.20.0.5:8080/v1/shipments/SL0000059200\", host: \"nginx:80\"",
+      "2026/11/27 10:54:44 [error] 30#30: *843 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 172.20.0.8, server: , request: \"GET /v1/customers/92086/shipments?limit=20 HTTP/1.1\", upstream: \"http://172.20.0.5:8080/v1/customers/92086/shipments?limit=20\", host: \"nginx:80\"",
+      "2026/11/27 10:54:44 [error] 30#30: *789 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 172.20.0.8, server: , request: \"GET /v1/shipments/SL0000809100 HTTP/1.1\", upstream: \"http://172.20.0.5:8080/v1/shipments/SL0000809100\", host: \"nginx:80\""
+    ]
+  }
+}

@@ -1,0 +1,894 @@
+{
+  "step": 4,
+  "name": "Stampede protection",
+  "change": "Concurrent misses on a key share one read; TTLs jittered by up to 20%",
+  "indexes": {
+    "bytes": {
+      "shipments_tracking_number": 31563776,
+      "tracking_events_shipment": 321273856,
+      "shipments_customer": 40574976
+    }
+  },
+  "pooling": true,
+  "cache": true,
+  "coalescing": true,
+  "jitter": 0.2,
+  "measuredAt": "2026-11-27T10:36:44+00:00",
+  "commit": "4998c2e",
+  "quick": false,
+  "criteria": {
+    "p99BelowMs": 250,
+    "failedBelow": 0.001,
+    "dropped": 0
+  },
+  "light": {
+    "rate": 0.5,
+    "duration": "180s",
+    "requests": 91,
+    "throughput": 0.51,
+    "failedRate": 0,
+    "dropped": 0,
+    "latencyMs": {
+      "p50": 4.4,
+      "p90": 5.84,
+      "p95": 6.45,
+      "p99": 9.12,
+      "avg": 4.86,
+      "max": 23.98
+    },
+    "readsAfterWrite": 0,
+    "staleReads": 0,
+    "byEndpoint": {
+      "get_shipment": {
+        "p50": 4.53,
+        "p90": 5.78,
+        "p95": 6.11,
+        "p99": 7.21,
+        "avg": 4.74,
+        "max": 7.47
+      },
+      "list_shipments": {
+        "p50": 3.59,
+        "p90": 7.09,
+        "p95": 15.54,
+        "p99": 22.29,
+        "avg": 5.68,
+        "max": 23.98
+      },
+      "post_event": null
+    },
+    "failedByEndpoint": {
+      "get_shipment": {
+        "requests": 80,
+        "failed": 0
+      },
+      "list_shipments": {
+        "requests": 11,
+        "failed": 0
+      },
+      "post_event": {
+        "requests": 0,
+        "failed": 0
+      }
+    },
+    "perRequest": {
+      "sessions": 0.01,
+      "rowsRead": 66.74,
+      "redisHits": 0.0,
+      "redisMisses": 1.76,
+      "shipmentReads": 0.88,
+      "cacheHits": 0.0,
+      "cacheMisses": 0.88,
+      "cacheJoined": 0.0,
+      "cacheUnavailable": 0.0,
+      "cacheHitRate": 0.0,
+      "redisKeys": 26,
+      "redisMemoryBytes": 1562600
+    }
+  },
+  "capacity": {
+    "sustainedRate": 2560.0,
+    "probes": [
+      {
+        "rate": 512,
+        "duration": "30s",
+        "requests": 15361,
+        "throughput": 511.95,
+        "failedRate": 0,
+        "dropped": 0,
+        "latencyMs": {
+          "p50": 1.27,
+          "p90": 3.34,
+          "p95": 3.82,
+          "p99": 8.25,
+          "avg": 2.12,
+          "max": 55.65
+        },
+        "readsAfterWrite": 0,
+        "staleReads": 0,
+        "byEndpoint": {
+          "get_shipment": {
+            "p50": 1.12,
+            "p90": 3.28,
+            "p95": 3.61,
+            "p99": 7.65,
+            "avg": 2.04,
+            "max": 55.65
+          },
+          "list_shipments": {
+            "p50": 1.98,
+            "p90": 2.49,
+            "p95": 2.86,
+            "p99": 8.7,
+            "avg": 2.26,
+            "max": 41.8
+          },
+          "post_event": {
+            "p50": 5.03,
+            "p90": 5.95,
+            "p95": 6.48,
+            "p99": 16.59,
+            "avg": 5.1,
+            "max": 35.49
+          }
+        },
+        "failedByEndpoint": {
+          "get_shipment": {
+            "requests": 13839,
+            "failed": 0
+          },
+          "list_shipments": {
+            "requests": 1218,
+            "failed": 0
+          },
+          "post_event": {
+            "requests": 304,
+            "failed": 0
+          }
+        },
+        "cpuCores": {
+          "k6": 0.37,
+          "nginx": 0.0,
+          "api-1": 0.68,
+          "db": 0.21,
+          "redis": 0.1
+        },
+        "perRequest": {
+          "sessions": 0.0,
+          "rowsRead": 12.1,
+          "redisHits": 0.54,
+          "redisMisses": 0.72,
+          "shipmentReads": 0.36,
+          "cacheHits": 0.54,
+          "cacheMisses": 0.36,
+          "cacheJoined": 0.0,
+          "cacheUnavailable": 0.0,
+          "cacheHitRate": 0.6,
+          "redisKeys": 12202,
+          "redisMemoryBytes": 23740488
+        },
+        "sustained": true
+      },
+      {
+        "rate": 1024,
+        "duration": "30s",
+        "requests": 30723,
+        "throughput": 1023.98,
+        "failedRate": 0,
+        "dropped": 0,
+        "latencyMs": {
+          "p50": 2.29,
+          "p90": 7.15,
+          "p95": 18.02,
+          "p99": 55.02,
+          "avg": 4.55,
+          "max": 187.72
+        },
+        "readsAfterWrite": 0,
+        "staleReads": 0,
+        "byEndpoint": {
+          "get_shipment": {
+            "p50": 2.39,
+            "p90": 7.16,
+            "p95": 18.19,
+            "p99": 53.74,
+            "avg": 4.51,
+            "max": 187.72
+          },
+          "list_shipments": {
+            "p50": 2.05,
+            "p90": 6.16,
+            "p95": 15.82,
+            "p99": 55.26,
+            "avg": 4.43,
+            "max": 136.66
+          },
+          "post_event": {
+            "p50": 4.5,
+            "p90": 9.16,
+            "p95": 22.3,
+            "p99": 69.89,
+            "avg": 7.23,
+            "max": 138.51
+          }
+        },
+        "failedByEndpoint": {
+          "get_shipment": {
+            "requests": 27666,
+            "failed": 0
+          },
+          "list_shipments": {
+            "requests": 2434,
+            "failed": 0
+          },
+          "post_event": {
+            "requests": 623,
+            "failed": 0
+          }
+        },
+        "cpuCores": {
+          "k6": 0.7,
+          "nginx": 0.0,
+          "api-1": 1.1,
+          "db": 0.75,
+          "redis": 0.17
+        },
+        "perRequest": {
+          "sessions": 0.0,
+          "rowsRead": 13.56,
+          "redisHits": 0.51,
+          "redisMisses": 0.79,
+          "shipmentReads": 0.4,
+          "cacheHits": 0.51,
+          "cacheMisses": 0.4,
+          "cacheJoined": 0.0,
+          "cacheUnavailable": 0.0,
+          "cacheHitRate": 0.561,
+          "redisKeys": 17252,
+          "redisMemoryBytes": 31889384
+        },
+        "sustained": true
+      },
+      {
+        "rate": 2048,
+        "duration": "30s",
+        "requests": 61441,
+        "throughput": 2047.82,
+        "failedRate": 0,
+        "dropped": 0,
+        "latencyMs": {
+          "p50": 3.06,
+          "p90": 29.21,
+          "p95": 44.53,
+          "p99": 92.37,
+          "avg": 9.93,
+          "max": 220.97
+        },
+        "readsAfterWrite": 0,
+        "staleReads": 0,
+        "byEndpoint": {
+          "get_shipment": {
+            "p50": 3.02,
+            "p90": 28.71,
+            "p95": 44.21,
+            "p99": 90.5,
+            "avg": 9.78,
+            "max": 220.97
+          },
+          "list_shipments": {
+            "p50": 2.81,
+            "p90": 29.98,
+            "p95": 44.33,
+            "p99": 103.66,
+            "avg": 10.37,
+            "max": 183.53
+          },
+          "post_event": {
+            "p50": 5.65,
+            "p90": 39.96,
+            "p95": 56.54,
+            "p99": 109.72,
+            "avg": 14.98,
+            "max": 193.41
+          }
+        },
+        "failedByEndpoint": {
+          "get_shipment": {
+            "requests": 55377,
+            "failed": 0
+          },
+          "list_shipments": {
+            "requests": 4806,
+            "failed": 0
+          },
+          "post_event": {
+            "requests": 1258,
+            "failed": 0
+          }
+        },
+        "cpuCores": {
+          "k6": 1.29,
+          "nginx": 0.0,
+          "api-1": 1.19,
+          "db": 1.05,
+          "redis": 0.23
+        },
+        "perRequest": {
+          "sessions": 0.0,
+          "rowsRead": 8.83,
+          "redisHits": 0.63,
+          "redisMisses": 0.53,
+          "shipmentReads": 0.27,
+          "cacheHits": 0.63,
+          "cacheMisses": 0.27,
+          "cacheJoined": 0.0,
+          "cacheUnavailable": 0.0,
+          "cacheHitRate": 0.704,
+          "redisKeys": 25982,
+          "redisMemoryBytes": 43578584
+        },
+        "sustained": true
+      },
+      {
+        "rate": 4096,
+        "duration": "30s",
+        "requests": 85969,
+        "throughput": 2737.27,
+        "failedRate": 0,
+        "dropped": 36912,
+        "latencyMs": {
+          "p50": 55.93,
+          "p90": 2788.74,
+          "p95": 2967.13,
+          "p99": 3114.24,
+          "avg": 855.3,
+          "max": 3225.22
+        },
+        "readsAfterWrite": 0,
+        "staleReads": 0,
+        "byEndpoint": {
+          "get_shipment": {
+            "p50": 45.92,
+            "p90": 2754.73,
+            "p95": 2897.45,
+            "p99": 3109.79,
+            "avg": 693.84,
+            "max": 3225.22
+          },
+          "list_shipments": {
+            "p50": 2658.61,
+            "p90": 2994.74,
+            "p95": 3048.35,
+            "p99": 3123.01,
+            "avg": 2269.67,
+            "max": 3169.33
+          },
+          "post_event": {
+            "p50": 2677.99,
+            "p90": 3015.24,
+            "p95": 3079.89,
+            "p99": 3146.94,
+            "avg": 2314.98,
+            "max": 3185.6
+          }
+        },
+        "failedByEndpoint": {
+          "get_shipment": {
+            "requests": 77210,
+            "failed": 0
+          },
+          "list_shipments": {
+            "requests": 7051,
+            "failed": 0
+          },
+          "post_event": {
+            "requests": 1708,
+            "failed": 0
+          }
+        },
+        "cpuCores": {
+          "k6": 1.44,
+          "nginx": 0.0,
+          "api-1": 1.24,
+          "db": 1.45,
+          "redis": 0.19
+        },
+        "perRequest": {
+          "sessions": 0.0,
+          "rowsRead": 8.3,
+          "redisHits": 0.61,
+          "redisMisses": 0.54,
+          "shipmentReads": 0.25,
+          "cacheHits": 0.61,
+          "cacheMisses": 0.29,
+          "cacheJoined": 0.03,
+          "cacheUnavailable": 0.0,
+          "cacheHitRate": 0.681,
+          "redisKeys": 33324,
+          "redisMemoryBytes": 53241304
+        },
+        "sustained": false
+      },
+      {
+        "rate": 4096,
+        "duration": "30s",
+        "requests": 87777,
+        "throughput": 2780.1,
+        "failedRate": 0,
+        "dropped": 35105,
+        "latencyMs": {
+          "p50": 51.81,
+          "p90": 2821.52,
+          "p95": 2952.13,
+          "p99": 3091.63,
+          "avg": 859.69,
+          "max": 3177.95
+        },
+        "readsAfterWrite": 0,
+        "staleReads": 0,
+        "byEndpoint": {
+          "get_shipment": {
+            "p50": 44.41,
+            "p90": 2773.72,
+            "p95": 2934.78,
+            "p99": 3068.47,
+            "avg": 698.38,
+            "max": 3177.95
+          },
+          "list_shipments": {
+            "p50": 2658.49,
+            "p90": 2977.52,
+            "p95": 3026.07,
+            "p99": 3106.71,
+            "avg": 2330.62,
+            "max": 3137.79
+          },
+          "post_event": {
+            "p50": 2677.52,
+            "p90": 2996.02,
+            "p95": 3041.49,
+            "p99": 3125.67,
+            "avg": 2341.91,
+            "max": 3151.41
+          }
+        },
+        "failedByEndpoint": {
+          "get_shipment": {
+            "requests": 79114,
+            "failed": 0
+          },
+          "list_shipments": {
+            "requests": 6956,
+            "failed": 0
+          },
+          "post_event": {
+            "requests": 1707,
+            "failed": 0
+          }
+        },
+        "cpuCores": {
+          "k6": 1.4,
+          "nginx": 0.0,
+          "api-1": 1.33,
+          "db": 1.49,
+          "redis": 0.25
+        },
+        "perRequest": {
+          "sessions": 0.0,
+          "rowsRead": 8.46,
+          "redisHits": 0.62,
+          "redisMisses": 0.53,
+          "shipmentReads": 0.25,
+          "cacheHits": 0.62,
+          "cacheMisses": 0.28,
+          "cacheJoined": 0.03,
+          "cacheUnavailable": 0.0,
+          "cacheHitRate": 0.69,
+          "redisKeys": 37661,
+          "redisMemoryBytes": 59021608
+        },
+        "sustained": false
+      },
+      {
+        "rate": 3072,
+        "duration": "30s",
+        "requests": 90698,
+        "throughput": 3022.52,
+        "failedRate": 0,
+        "dropped": 1463,
+        "latencyMs": {
+          "p50": 36.86,
+          "p90": 430.27,
+          "p95": 484.77,
+          "p99": 557.58,
+          "avg": 120.58,
+          "max": 661.19
+        },
+        "readsAfterWrite": 0,
+        "staleReads": 0,
+        "byEndpoint": {
+          "get_shipment": {
+            "p50": 34.34,
+            "p90": 402.63,
+            "p95": 477.71,
+            "p99": 553.94,
+            "avg": 104.82,
+            "max": 661.19
+          },
+          "list_shipments": {
+            "p50": 278.29,
+            "p90": 481.06,
+            "p95": 509.87,
+            "p99": 566.03,
+            "avg": 259.38,
+            "max": 622.98
+          },
+          "post_event": {
+            "p50": 305.79,
+            "p90": 504.44,
+            "p95": 540.19,
+            "p99": 590.75,
+            "avg": 278.16,
+            "max": 650.32
+          }
+        },
+        "failedByEndpoint": {
+          "get_shipment": {
+            "requests": 81677,
+            "failed": 0
+          },
+          "list_shipments": {
+            "requests": 7160,
+            "failed": 0
+          },
+          "post_event": {
+            "requests": 1861,
+            "failed": 0
+          }
+        },
+        "cpuCores": {
+          "k6": 1.42,
+          "nginx": 0.0,
+          "api-1": 1.24,
+          "db": 1.55,
+          "redis": 0.22
+        },
+        "perRequest": {
+          "sessions": 0.0,
+          "rowsRead": 8.54,
+          "redisHits": 0.65,
+          "redisMisses": 0.5,
+          "shipmentReads": 0.25,
+          "cacheHits": 0.65,
+          "cacheMisses": 0.25,
+          "cacheJoined": 0.0,
+          "cacheUnavailable": 0.0,
+          "cacheHitRate": 0.718,
+          "redisKeys": 38682,
+          "redisMemoryBytes": 60920024
+        },
+        "sustained": false
+      },
+      {
+        "rate": 3072,
+        "duration": "30s",
+        "requests": 90158,
+        "throughput": 2996.16,
+        "failedRate": 0,
+        "dropped": 2001,
+        "latencyMs": {
+          "p50": 41.53,
+          "p90": 379.42,
+          "p95": 495.2,
+          "p99": 573.84,
+          "avg": 115.92,
+          "max": 650.15
+        },
+        "readsAfterWrite": 0,
+        "staleReads": 0,
+        "byEndpoint": {
+          "get_shipment": {
+            "p50": 37.52,
+            "p90": 314.43,
+            "p95": 479.26,
+            "p99": 572.73,
+            "avg": 101.48,
+            "max": 650.15
+          },
+          "list_shipments": {
+            "p50": 207.06,
+            "p90": 498.13,
+            "p95": 536.54,
+            "p99": 574.83,
+            "avg": 239.16,
+            "max": 613.67
+          },
+          "post_event": {
+            "p50": 225.21,
+            "p90": 515.22,
+            "p95": 553.46,
+            "p99": 585.11,
+            "avg": 258.71,
+            "max": 616.09
+          }
+        },
+        "failedByEndpoint": {
+          "get_shipment": {
+            "requests": 80964,
+            "failed": 0
+          },
+          "list_shipments": {
+            "requests": 7364,
+            "failed": 0
+          },
+          "post_event": {
+            "requests": 1830,
+            "failed": 0
+          }
+        },
+        "cpuCores": {
+          "k6": 1.29,
+          "nginx": 0.0,
+          "api-1": 1.28,
+          "db": 1.32,
+          "redis": 0.24
+        },
+        "perRequest": {
+          "sessions": 0.0,
+          "rowsRead": 8.47,
+          "redisHits": 0.65,
+          "redisMisses": 0.5,
+          "shipmentReads": 0.25,
+          "cacheHits": 0.65,
+          "cacheMisses": 0.25,
+          "cacheJoined": 0.0,
+          "cacheUnavailable": 0.0,
+          "cacheHitRate": 0.719,
+          "redisKeys": 38821,
+          "redisMemoryBytes": 61214552
+        },
+        "sustained": false
+      },
+      {
+        "rate": 2560,
+        "duration": "30s",
+        "requests": 76800,
+        "throughput": 2559.64,
+        "failedRate": 0,
+        "dropped": 0,
+        "latencyMs": {
+          "p50": 8.97,
+          "p90": 45.32,
+          "p95": 59.13,
+          "p99": 138.89,
+          "avg": 18.39,
+          "max": 289.25
+        },
+        "readsAfterWrite": 0,
+        "staleReads": 0,
+        "byEndpoint": {
+          "get_shipment": {
+            "p50": 8.86,
+            "p90": 45.24,
+            "p95": 58.94,
+            "p99": 129.25,
+            "avg": 18.18,
+            "max": 289.25
+          },
+          "list_shipments": {
+            "p50": 8.95,
+            "p90": 42.41,
+            "p95": 56.82,
+            "p99": 173.47,
+            "avg": 18.62,
+            "max": 240.24
+          },
+          "post_event": {
+            "p50": 15.73,
+            "p90": 58.75,
+            "p95": 78.93,
+            "p99": 191.99,
+            "avg": 26.77,
+            "max": 266.04
+          }
+        },
+        "failedByEndpoint": {
+          "get_shipment": {
+            "requests": 69088,
+            "failed": 0
+          },
+          "list_shipments": {
+            "requests": 6163,
+            "failed": 0
+          },
+          "post_event": {
+            "requests": 1549,
+            "failed": 0
+          }
+        },
+        "cpuCores": {
+          "k6": 1.39,
+          "nginx": 0.0,
+          "api-1": 1.24,
+          "db": 1.16,
+          "redis": 0.27
+        },
+        "perRequest": {
+          "sessions": 0.0,
+          "rowsRead": 8.6,
+          "redisHits": 0.65,
+          "redisMisses": 0.5,
+          "shipmentReads": 0.25,
+          "cacheHits": 0.65,
+          "cacheMisses": 0.25,
+          "cacheJoined": 0.0,
+          "cacheUnavailable": 0.0,
+          "cacheHitRate": 0.721,
+          "redisKeys": 35153,
+          "redisMemoryBytes": 56521320
+        },
+        "sustained": true
+      },
+      {
+        "rate": 2816,
+        "duration": "30s",
+        "requests": 83977,
+        "throughput": 2798.63,
+        "failedRate": 0,
+        "dropped": 504,
+        "latencyMs": {
+          "p50": 20.82,
+          "p90": 91.54,
+          "p95": 223.91,
+          "p99": 288.15,
+          "avg": 41.74,
+          "max": 383.64
+        },
+        "readsAfterWrite": 0,
+        "staleReads": 0,
+        "byEndpoint": {
+          "get_shipment": {
+            "p50": 20.51,
+            "p90": 81.49,
+            "p95": 217.75,
+            "p99": 287.75,
+            "avg": 39.38,
+            "max": 383.64
+          },
+          "list_shipments": {
+            "p50": 23.12,
+            "p90": 213.36,
+            "p95": 242.13,
+            "p99": 283.72,
+            "avg": 60.29,
+            "max": 350.26
+          },
+          "post_event": {
+            "p50": 36.16,
+            "p90": 230.83,
+            "p95": 264.3,
+            "p99": 320.46,
+            "avg": 71.9,
+            "max": 338.14
+          }
+        },
+        "failedByEndpoint": {
+          "get_shipment": {
+            "requests": 75457,
+            "failed": 0
+          },
+          "list_shipments": {
+            "requests": 6822,
+            "failed": 0
+          },
+          "post_event": {
+            "requests": 1698,
+            "failed": 0
+          }
+        },
+        "cpuCores": {
+          "k6": 1.58,
+          "nginx": 0.0,
+          "api-1": 1.3,
+          "db": 1.52,
+          "redis": 0.25
+        },
+        "perRequest": {
+          "sessions": 0.0,
+          "rowsRead": 8.64,
+          "redisHits": 0.64,
+          "redisMisses": 0.51,
+          "shipmentReads": 0.25,
+          "cacheHits": 0.64,
+          "cacheMisses": 0.25,
+          "cacheJoined": 0.0,
+          "cacheUnavailable": 0.0,
+          "cacheHitRate": 0.717,
+          "redisKeys": 34777,
+          "redisMemoryBytes": 56203656
+        },
+        "sustained": false
+      },
+      {
+        "rate": 2816,
+        "duration": "30s",
+        "requests": 83936,
+        "throughput": 2797.29,
+        "failedRate": 0,
+        "dropped": 546,
+        "latencyMs": {
+          "p50": 17.23,
+          "p90": 61.57,
+          "p95": 85.19,
+          "p99": 142.06,
+          "avg": 26.13,
+          "max": 300.12
+        },
+        "readsAfterWrite": 0,
+        "staleReads": 0,
+        "byEndpoint": {
+          "get_shipment": {
+            "p50": 17.06,
+            "p90": 59.6,
+            "p95": 82.34,
+            "p99": 141.64,
+            "avg": 25.55,
+            "max": 300.12
+          },
+          "list_shipments": {
+            "p50": 17.35,
+            "p90": 73.62,
+            "p95": 95.35,
+            "p99": 137.55,
+            "avg": 29.04,
+            "max": 235.8
+          },
+          "post_event": {
+            "p50": 28.07,
+            "p90": 94.13,
+            "p95": 113.96,
+            "p99": 161.37,
+            "avg": 40.86,
+            "max": 193.95
+          }
+        },
+        "failedByEndpoint": {
+          "get_shipment": {
+            "requests": 75550,
+            "failed": 0
+          },
+          "list_shipments": {
+            "requests": 6712,
+            "failed": 0
+          },
+          "post_event": {
+            "requests": 1674,
+            "failed": 0
+          }
+        },
+        "cpuCores": {
+          "k6": 1.62,
+          "nginx": 0.0,
+          "api-1": 1.28,
+          "db": 1.26,
+          "redis": 0.3
+        },
+        "perRequest": {
+          "sessions": 0.0,
+          "rowsRead": 8.48,
+          "redisHits": 0.65,
+          "redisMisses": 0.5,
+          "shipmentReads": 0.25,
+          "cacheHits": 0.65,
+          "cacheMisses": 0.25,
+          "cacheJoined": 0.0,
+          "cacheUnavailable": 0.0,
+          "cacheHitRate": 0.723,
+          "redisKeys": 37478,
+          "redisMemoryBytes": 59914392
+        },
+        "sustained": false
+      }
+    ]
+  }
+}

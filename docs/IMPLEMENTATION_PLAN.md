@@ -173,6 +173,10 @@ Integration tests run against real Postgres and Redis in Testcontainers.
 - **Before step 5 the ladder sends load straight to the API**, so steps 0 to 4 don't pay for the proxy
   hop; nginx stays up so `localhost:8090` always works.
 - **Every probe records each container's CPU**, sampled halfway through, to show where the bottleneck is.
+- **Step 5 runs out of laptop.** The Mac has 4 physical cores (8 hyperthreads). Step 5 pins 7 CPUs
+  (three instances, Postgres 2, Redis, nginx) and k6 needs 1.5 to 2.5 more, so at 3,072 a second the
+  containers already use about 7.3 of the 8. Its capacity is the machine's, not load balancing's,
+  and the README must say so: on separate machines the instances wouldn't share cores.
 
 ## Code structure
 
