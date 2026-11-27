@@ -27,3 +27,35 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: docker build -t tracker-api .
+
+  # The whole ladder at toy rates on a small seed: proves the stack, the scripts and every step's
+  # settings still run end to end. Its numbers mean nothing; the real ones come from a laptop run.
+  ladder-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SHIPMENTS: 20000
+      CUSTOMERS: 2000
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/db.sh seed
+      - run: python3 scripts/ladder.py all --quick
+      - name: Every step served its light run without failures and sustained some rate
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, sys
+          bad = []
+          for path in sorted(pathlib.Path("results").glob("step-*-quick.json")):
+              d = json.loads(path.read_text())
+              light, sustained = d["light"], d["capacity"]["sustainedRate"]
+              print(f"step {d['step']}: light p99 {light['latencyMs']['p99']} ms, failed {light['failedRate']:.2%}, sustains {sustained}/s")
+              if light["requests"] == 0 or light["failedRate"] > 0 or not sustained:
+                  bad.append(d["step"])
+          if bad or not list(pathlib.Path("results").glob("step-*-quick.json")):
+              sys.exit(f"steps failing the smoke check: {bad}")
+          PY
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ladder-smoke-results
+          path: results/step-*-quick.json

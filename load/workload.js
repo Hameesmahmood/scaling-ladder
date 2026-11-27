@@ -12,8 +12,9 @@ import { Counter } from "k6/metrics";
 const TARGET = __ENV.TARGET || "http://api:8080";
 const RATE = Number(__ENV.RATE || 10);
 const DURATION = __ENV.DURATION || "60s";
-const SHIPMENTS = 1_000_000;
-const CUSTOMERS = 100_000;
+// The seed's sizes. CI's smoke run seeds a small database and sets both (see scripts/db.sh).
+const SHIPMENTS = Number(__ENV.SHIPMENTS || 1_000_000);
+const CUSTOMERS = Number(__ENV.CUSTOMERS || 100_000);
 const ENDPOINTS = ["get_shipment", "list_shipments", "post_event"];
 // With CHECK_STALE=1, every write becomes read, write, read again, and the second read is checked
 // for the event just recorded: the customer refreshing after the courier's scan. Off for the ladder
