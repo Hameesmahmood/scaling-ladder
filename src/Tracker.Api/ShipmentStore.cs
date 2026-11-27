@@ -11,9 +11,14 @@ namespace Tracker.Api;
 public sealed class ShipmentStore(NpgsqlDataSource db)
 {
     public const int EventsShown = 20;
+    private long reads;
+
+    /// <summary>Shipment lookups since the process started, whoever asked. Served at /stats.</summary>
+    public long Reads => Interlocked.Read(ref reads);
 
     public async Task<Shipment?> GetAsync(string trackingNumber, CancellationToken ct)
     {
+        Interlocked.Increment(ref reads);
         await using var connection = await db.OpenConnectionAsync(ct);
         var row = await connection.QuerySingleOrDefaultAsync<ShipmentRow>(new CommandDefinition("""
             SELECT id, tracking_number, customer_id, service, origin, destination, status, created_at, updated_at

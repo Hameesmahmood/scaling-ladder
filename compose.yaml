@@ -1,5 +1,5 @@
 # Resources are pinned so the ladder's steps compare fairly: each API instance gets 1 CPU, Postgres
-# 2 CPUs and 2 GB, Redis 1 CPU. k6 runs outside these limits.
+# 2 CPUs and 2 GB, Redis 1 CPU, nginx 1 CPU. k6 runs outside these limits.
 services:
   db:
     image: postgres:18-alpine
@@ -47,9 +47,10 @@ services:
       Tracker__Cache: ${TRACKER_CACHE:-false}
       Tracker__CacheTtlSeconds: ${TRACKER_CACHE_TTL:-60}
       Tracker__CacheInvalidation: ${TRACKER_CACHE_INVALIDATION:-true}
+      Tracker__Coalescing: ${TRACKER_COALESCING:-false}
+      Tracker__CacheTtlJitter: ${TRACKER_CACHE_TTL_JITTER:-0}
       Logging__LogLevel__Default: Warning
-    ports:
-      - "8090:8080"
+    # No host port: step 5 runs three of these. Reach them through nginx on 8090.
     cpus: 1
     mem_limit: 512m
     depends_on:
@@ -67,6 +68,26 @@ services:
       retries: 3
       start_period: 60s
       start_interval: 2s
+
+  # Step 5's load balancer. Always up, so localhost:8090 reaches the API at every step; the ladder
+  # sends load straight to the API before step 5, so the earlier steps don't pay for the extra hop.
+  nginx:
+    image: nginx:1.28.0-alpine
+    volumes:
+      - ./nginx/${NGINX_CONF:-nginx.conf}:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8090:80"
+    cpus: 1
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      start_interval: 1s
+      start_period: 30s
+      timeout: 2s
+      retries: 3
 
   # The load generator. Only runs on demand: docker compose run --rm k6 run /load/workload.js
   k6:

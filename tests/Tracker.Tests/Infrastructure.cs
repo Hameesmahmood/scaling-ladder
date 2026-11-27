@@ -71,6 +71,23 @@ public sealed class InfrastructureCollection : ICollectionFixture<Infrastructure
 /// <summary>The API, pointed at the test containers, with any setting overridden per test.</summary>
 public sealed class Api(IDictionary<string, string?> settings) : WebApplicationFactory<Program>
 {
+    /// <summary>
+    /// A client, once /readyz says Postgres and Redis both answer. Redis connects in the background
+    /// if it's slow to start, and until then the cache is skipped (as it should be), which would
+    /// make a test of the cache see "unavailable" instead of a hit or miss.
+    /// </summary>
+    public async Task<HttpClient> CreateReadyClientAsync()
+    {
+        var client = CreateClient();
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while ((await client.GetAsync("/readyz")).StatusCode != System.Net.HttpStatusCode.OK)
+        {
+            if (DateTime.UtcNow > deadline) throw new TimeoutException("The API didn't become ready.");
+            await Task.Delay(100);
+        }
+        return client;
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         foreach (var (key, value) in settings) builder.UseSetting(key, value);

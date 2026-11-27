@@ -119,7 +119,8 @@ breaks. The ladder itself is the performance evidence; these cover correctness a
 | Invalidation | A read straight after a write sees the new status | The read returns the old status until the TTL expires (stale reads counted in the load test too: `scripts/stale_reads.py`) |
 | Failing fast when Redis is down | Reads and writes carry on through Postgres, each in milliseconds | Requests queue for the missing Redis and each waits out a 5-second timeout |
 | Stampede protection | 200 concurrent misses on one key run 1 query | They run 200 queries |
-| Load balancing | Killing one of three instances mid-run causes no failed `GET`s (Nginx retries idempotent requests on another instance) | Requests to the dead instance fail |
+| Load balancing | Killing one of three instances mid-run causes no failed `GET`s (Nginx retries idempotent requests on another instance; `scripts/kill_instance.py`) | Requests to the dead instance fail |
+| TTL jitter | 100 entries cached together expire spread over 48 to 72 s | They all expire within a second or two of each other |
 | p99 (measurement) | Reported per step | An average that hides the slow tail (shown side by side once) |
 
 Integration tests run against real Postgres and Redis in Testcontainers.
@@ -147,6 +148,31 @@ Integration tests run against real Postgres and Redis in Testcontainers.
   failing it 3 times in 3, so one run near the limit can't decide a step's capacity.
 - **Redis is emptied, and its statistics reset, at the start of every step**, and every probe
   records the hit rate, keys and memory, so a step never inherits another's warm cache.
+
+### Decisions made while building steps 4 and 5
+
+- **Coalescing is per instance.** At step 5 a key can be rebuilt by each of the three instances at
+  once, three reads instead of one. A Redis lock would make it one, at the cost of a round trip on
+  every miss and a lock that can outlive a crashed holder. Three is already the stampede solved.
+- **The shared rebuild ignores any one caller's cancellation.** A client that hangs up stops waiting,
+  but the read carries on for the others.
+- **A miss looks in Redis once more before it reads Postgres**, so one that arrives just after a
+  rebuild finished doesn't start a second. From step 4, Redis's own hit and miss counts therefore
+  overstate misses, and the ladder takes the cache's hit rate from the instances' counters (`/stats`).
+- **A write also drops any rebuild in progress on its instance.** Otherwise a read that starts after
+  the write could join a rebuild that began before it, and return the old status: a new way to read
+  stale that coalescing would have added. The stale-read experiment runs at step 4 too.
+- **The stampede test makes the rebuild slow on purpose**, by locking the shipments table while 200
+  requests arrive for one cold key. With the indexes the real rebuild takes about a millisecond, too
+  short for misses to pile up in a test; under production load, or with a slower rebuild, they do.
+- **Nginx retries idempotent requests only.** A `GET` that fails on one instance (refused, reset, or
+  timed out) goes to another; a `POST` already sent doesn't, because recording an event twice is
+  worse than failing it. The kill experiment counts both.
+- **Nginx re-resolves the instances every 2 s** (`resolve`, open source since 1.27.3), so a killed
+  instance drops out of Docker's DNS and out of rotation without a reload.
+- **Before step 5 the ladder sends load straight to the API**, so steps 0 to 4 don't pay for the proxy
+  hop; nginx stays up so `localhost:8090` always works.
+- **Every probe records each container's CPU**, sampled halfway through, to show where the bottleneck is.
 
 ## Code structure
 

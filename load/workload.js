@@ -36,8 +36,11 @@ export const options = {
     },
   },
   summaryTrendStats: ["avg", "min", "med", "p(90)", "p(95)", "p(99)", "max"],
-  // Always-passing thresholds, only so k6 reports latency for each endpoint separately.
-  thresholds: Object.fromEntries(ENDPOINTS.map((n) => [`http_req_duration{name:${n}}`, ["max>=0"]])),
+  // Always-passing thresholds, only so k6 reports latency and failures for each endpoint separately.
+  thresholds: Object.fromEntries(ENDPOINTS.flatMap((n) => [
+    [`http_req_duration{name:${n}}`, ["max>=0"]],
+    [`http_req_failed{name:${n}}`, ["rate>=0"]],
+  ])),
 };
 
 const trackingNumber = (id) => "SL" + String(id).padStart(10, "0");
@@ -97,6 +100,11 @@ export function handleSummary(data) {
     readsAfterWrite: m.reads_after_write?.values.count ?? 0,
     staleReads: m.stale_reads?.values.count ?? 0,
     byEndpoint: Object.fromEntries(ENDPOINTS.map((n) => [n, latency(m[`http_req_duration{name:${n}}`]?.values)])),
+    // For a Rate metric, "passes" counts the true values: here, requests that failed.
+    failedByEndpoint: Object.fromEntries(ENDPOINTS.map((n) => {
+      const v = m[`http_req_failed{name:${n}}`]?.values ?? {};
+      return [n, { requests: (v.passes ?? 0) + (v.fails ?? 0), failed: v.passes ?? 0 }];
+    })),
   };
   return { stdout: JSON.stringify(result) + "\n" };
 }

@@ -27,4 +27,10 @@ public sealed class TrackerSettings
     /// only the tests switch it off, to show the stale reads it prevents.
     /// </summary>
     public bool CacheInvalidation { get; set; } = true;
+
+    /// <summary>Step 4. Concurrent misses on one key share a single Postgres read.</summary>
+    public bool Coalescing { get; set; }
+
+    /// <summary>Step 4. Each entry's TTL is spread by up to this fraction either way (0.2: 48 to 72 s).</summary>
+    public double CacheTtlJitter { get; set; }
 }

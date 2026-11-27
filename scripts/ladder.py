@@ -15,6 +15,7 @@ import math
 import os
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,6 +32,10 @@ STEPS = {
         "indexes": True, "pooling": True, "cache": False},
     3: {"name": "Cache-aside", "change": "Redis in front of GET shipment, 60-second TTL, deleted on every write",
         "indexes": True, "pooling": True, "cache": True},
+    4: {"name": "Stampede protection", "change": "Concurrent misses on a key share one read; TTLs jittered by up to 20%",
+        "indexes": True, "pooling": True, "cache": True, "coalescing": True, "jitter": 0.2},
+    5: {"name": "Load balancing", "change": "Nginx in front of three instances, retrying failed GETs on another",
+        "indexes": True, "pooling": True, "cache": True, "coalescing": True, "jitter": 0.2, "instances": 3},
 }
 
 # Chosen from step 0's capacity (about half of it), then fixed for every step so they compare.
@@ -86,13 +91,44 @@ def redis_info():
     return dict(line.split(":", 1) for line in lines if ":" in line and not line.startswith("#"))
 
 
+def api_stats():
+    """Each instance's own counters (GET /stats), summed. The image has no curl, so plain bash."""
+    totals = {"shipmentReads": 0, "cacheHits": 0, "cacheMisses": 0, "cacheJoined": 0, "cacheUnavailable": 0}
+    request = "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /stats HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3"
+    for container in run("docker", "compose", "ps", "-q", "api").split():
+        # Text mode has already turned the response's \r\n into \n.
+        body = json.loads(run("docker", "exec", container, "bash", "-c", request).split("\n\n", 1)[1])
+        totals["shipmentReads"] += body["shipment_reads"]
+        totals["cacheHits"] += body["cache"]["hits"]
+        totals["cacheMisses"] += body["cache"]["misses"]
+        totals["cacheJoined"] += body["cache"]["joined"]
+        totals["cacheUnavailable"] += body["cache"]["unavailable"]
+    return totals
+
+
 def counters():
-    """Running totals: Postgres's sessions (connections) opened and rows read, and Redis's cache
-    hits and misses (keyspace lookups: only GET shipment reads Redis)."""
+    """Running totals: Postgres's sessions (connections) opened and rows read; Redis's lookups
+    (keyspace hits and misses; from step 4 a miss looks twice, once more just before reading
+    Postgres); and the instances' own counts of cache hits and misses, shipment reads from
+    Postgres, misses that joined another's read, and reads that skipped Redis."""
     row = psql("SELECT sessions, tup_returned + tup_fetched FROM pg_stat_database WHERE datname = 'tracker'").split("|")
     info = redis_info()
     return {"sessions": int(row[0]), "rowsRead": int(row[1]),
-            "cacheHits": int(info["keyspace_hits"]), "cacheMisses": int(info["keyspace_misses"])}
+            "redisHits": int(info["keyspace_hits"]), "redisMisses": int(info["keyspace_misses"]), **api_stats()}
+
+
+def cpu():
+    """Each container's CPU use right now, in cores (docker stats reports percent of one core).
+    Instances of the API are listed separately, as api-1, api-2 and so on."""
+    out = run("docker", "stats", "--no-stream", "--format", "{{.Name}} {{.CPUPerc}}")
+    usage = {}
+    for line in out.splitlines():
+        name, percent = line.rsplit(" ", 1)
+        service = "k6" if "-k6-" in name else name.removeprefix("scaling-ladder-")
+        if not service.startswith("api-"):
+            service = service.removesuffix("-1")
+        usage[service] = round(float(percent.rstrip("%")) / 100, 2)
+    return usage
 
 
 def per_request(before, after, requests):
@@ -117,22 +153,41 @@ def build_api():
     sys.exit("Couldn't build the API image.")
 
 
+# Where k6 sends load: straight to the API before step 5, through nginx from step 5.
+target = "http://api:8080"
+
+
 def start_api(step, **overrides):
-    """Starts the API with the step's settings (and any overrides, as TRACKER_* variables), with
-    Redis emptied, so no step inherits another's cache."""
+    """Starts the API with the step's settings (and any overrides, as environment variables for
+    compose.yaml), with Redis emptied, so no step inherits another's cache. Stopped first, so every
+    step starts from a fresh process."""
+    global target
     config = STEPS[step]
-    settings = {"TRACKER_POOLING": config["pooling"], "TRACKER_CACHE": config["cache"], **overrides}
+    instances = config.get("instances", 1)
+    settings = {"TRACKER_POOLING": config["pooling"], "TRACKER_CACHE": config["cache"],
+                "TRACKER_COALESCING": config.get("coalescing", False),
+                "TRACKER_CACHE_TTL_JITTER": config.get("jitter", 0), **overrides}
     env = {**os.environ, **{k: str(v).lower() for k, v in settings.items()}}
-    run("docker", "compose", "up", "-d", "--no-build", "--wait", "api", env=env)
+    run("docker", "compose", "stop", "api", "nginx")
+    run("docker", "compose", "up", "-d", "--no-build", "--wait", "--scale", f"api={instances}", "api", "nginx", env=env)
+    target = "http://nginx:80" if instances > 1 else "http://api:8080"
     redis("FLUSHALL")
     redis("CONFIG", "RESETSTAT")
 
 
-def k6(rate, seconds, *env):
+def k6(rate, seconds, *env, sample_cpu=False):
+    """Runs the workload. With sample_cpu, also records each container's CPU halfway through."""
     extra = [arg for e in env for arg in ("-e", e)]
-    out = run("docker", "compose", "run", "--rm", "-e", f"RATE={rate}", "-e", f"DURATION={seconds}s", *extra,
-              "k6", "run", "--quiet", "--no-color", "/load/workload.js")
-    return json.loads(out.strip().splitlines()[-1])
+    command = ["docker", "compose", "run", "--rm", "-e", f"RATE={rate}", "-e", f"DURATION={seconds}s",
+               "-e", f"TARGET={target}", *extra, "k6", "run", "--quiet", "--no-color", "/load/workload.js"]
+    if not sample_cpu:
+        return json.loads(run(*command).strip().splitlines()[-1])
+    usage = {}
+    sampler = threading.Timer(seconds / 2, lambda: usage.update(cpu()))
+    sampler.start()
+    result = json.loads(run(*command).strip().splitlines()[-1])
+    sampler.join()
+    return {**result, "cpuCores": usage}
 
 
 def sustains(result, limit_ms):
@@ -163,7 +218,7 @@ def capacity(quick, limit_ms, start):
     def attempt(rate):
         time.sleep(5)  # let any queue from the last probe drain
         before = counters()
-        result = k6(rate, probe_seconds(rate, quick))
+        result = k6(rate, probe_seconds(rate, quick), sample_cpu=True)
         result["perRequest"] = per_request(before, counters(), result["requests"])
         result["sustained"] = sustains(result, limit_ms)
         probes.append(result)

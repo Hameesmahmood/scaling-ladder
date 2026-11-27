@@ -59,6 +59,9 @@ app.MapGet("/readyz", async (NpgsqlDataSource db, IConnectionMultiplexer redis, 
         : Results.Problem(statusCode: 503, title: "Not ready", detail: $"Unreachable: {string.Join(", ", failures)}.");
 });
 
+// This instance's counters since it started. The ladder reads them from each instance in turn.
+app.MapGet("/stats", (ShipmentStore store, ShipmentCache cache) => Results.Ok(new { shipmentReads = store.Reads, cache = cache.Stats }));
+
 app.MapShipmentEndpoints();
 
 app.Run();

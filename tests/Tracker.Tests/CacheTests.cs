@@ -36,7 +36,8 @@ public sealed class CacheTests(Infrastructure infra)
             ["Tracker:CacheTtlSeconds"] = ttlSeconds.ToString(),
             ["Tracker:CacheInvalidation"] = invalidation.ToString(),
         });
-        return (api.CreateClient(), api, connectionString);
+        // The unreachable-Redis test can't wait for ready: it never will be.
+        return (redis is null ? await api.CreateReadyClientAsync() : api.CreateClient(), api, connectionString);
     }
 
     private static async Task<(string Status, string Cache)> ReadAsync(HttpClient client)
