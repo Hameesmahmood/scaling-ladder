@@ -4,6 +4,9 @@
     python3 tools/chart.py
 
 Writes docs/ladder-light.svg and docs/ladder-dark.svg for the README. No dependencies.
+Near its limit one capacity search can land 25% either way, so where the latest
+results/repeat-steps-*.json (scripts/repeat.py) repeated steps at fixed rates, a note under the
+capacity panel says what the repeats found.
 Two panels, each on its own log axis: capacity spans three orders of magnitude, and latency
 two, so a linear axis would flatten every step after the first.
 """
@@ -26,7 +29,7 @@ W = 820
 LEFT, RIGHT = 72, 40
 PANEL_H = 180
 CAP_TOP = 156
-LAT_TOP = CAP_TOP + PANEL_H + 92
+LAT_TOP = CAP_TOP + PANEL_H + 126
 H = LAT_TOP + PANEL_H + 58
 FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif'
 TABULAR = 'style="font-variant-numeric: tabular-nums"'
@@ -50,21 +53,45 @@ def load():
     return sorted(steps, key=lambda s: s["step"])
 
 
+def repeats():
+    """From the latest repeat file: its steps, the highest rate every one of them passed in at least
+    2 runs of 3, and the lowest rate every one of them failed in every run."""
+    files = sorted((json.loads(p.read_text()) for p in (ROOT / "results").glob("repeat-steps-*.json")),
+                   key=lambda d: d["measuredAt"])
+    if not files:
+        return None
+    tally = {}
+    for r in files[-1]["runs"]:
+        tally.setdefault(r["rate"], {}).setdefault(r["step"], []).append(r["sustained"])
+    steps = sorted({step for by_step in tally.values() for step in by_step})
+    passed = [rate for rate, by_step in tally.items() if all(sum(v) * 3 >= 2 * len(v) for v in by_step.values())]
+    failed = [rate for rate, by_step in tally.items() if not any(any(v) for v in by_step.values())]
+    if not passed or not failed:
+        return None
+    return {"steps": steps, "passed": max(passed), "failed": min(failed)}
+
+
 def draw(steps, t):
     pw = W - LEFT - RIGHT
     band = pw / len(steps)
     x = lambda i: LEFT + band * (i + 0.5)
     first, last = steps[0], steps[-1]
-    ratio = last["capacity"] / first["capacity"]
+    rep = repeats()
+    # The headline uses the repeats' cautious figure, rounded, when they cover the last step.
+    about = rep is not None and last["step"] in rep["steps"]
+    final = float(f"{rep['passed']:.1g}") if about else last["capacity"]
+    ratio = final / first["capacity"]
     out = []
     add = out.append
 
     words = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five", 6: "Six", 7: "Seven", 8: "Eight", 9: "Nine"}
-    title = f"{words.get(len(steps) - 1, len(steps) - 1)} changes took the API from {num(first['capacity'])} to {num(last['capacity'])} requests a second"
+    title = (f"{words.get(len(steps) - 1, len(steps) - 1)} changes took the API from {num(first['capacity'])} to "
+             f"{'about ' if about else ''}{num(final)} requests a second")
+    # The middle line is the reading of these results (see docs/RESULTS.md), not computed from them.
     sub = [
-        f"Each step is the one before plus one change, on one laptop (4 cores). Capacity is the highest rate with p99",
-        f"under the step's limit and almost no failures. Latency is one request at a time ({num(first['lightRate'])} a second),",
-        "so it shows the work each request does, not queueing.",
+        "Each step is the one before plus one change, on one laptop (4 cores). Indexes and pooling did most of it;",
+        "from step 3 the single API process, then the laptop itself, set the limit. Latency is one request at a time",
+        f"({num(first['lightRate'])} a second), so it shows the work each request does, not queueing.",
     ]
     desc = f"Capacity rose {ratio:,.0f}-fold. " + "; ".join(
         f"step {s['step']}, {s['name']}: {num(s['capacity'])} requests a second, p50 {num(s['light']['p50'])} ms, "
@@ -92,6 +119,12 @@ def draw(steps, t):
 
     # Capacity: one series, so no legend; the heading names it and every step is labelled.
     y = panel(CAP_TOP, "Capacity, requests a second (log scale)", "", [s["capacity"] for s in steps])
+    if rep:
+        a, b = rep["steps"][0], rep["steps"][-1]
+        note = (f"Steps {a} to {b} are within noise of each other. In repeated runs at fixed rates, each passed",
+                f"{num(rep['passed'])} a second in at least 2 runs of 3, and none passed {num(rep['failed'])} even once.")
+        for k, line in enumerate(note):
+            add(f'<text x="{LEFT}" y="{CAP_TOP + PANEL_H + 28 + 17 * k}" font-size="12" fill="{t["ink2"]}">{escape(line)}</text>')
     path = " ".join(f"{'L' if i else 'M'}{x(i):.1f},{y(s['capacity']):.1f}" for i, s in enumerate(steps))
     add(f'<path d="{path}" fill="none" stroke="{t["capacity"]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>')
     for i, s in enumerate(steps):

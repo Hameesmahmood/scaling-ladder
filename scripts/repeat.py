@@ -9,27 +9,14 @@ and each container's CPU sampled halfway through. Writes results/repeat-steps-<s
 """
 import argparse
 import json
-import subprocess
 import threading
 import time
 from datetime import datetime, timezone
 
-from ladder import (P99_LIMIT_MS, ROOT, build_api, counters, k6, per_request, run, set_indexes,
+from ladder import (P99_LIMIT_MS, ROOT, build_api, counters, cpu, k6, per_request, run, set_indexes,
                     start_api, sustains)
 
 SECONDS = 30
-
-
-def cpu():
-    """Each container's CPU use right now, in cores (docker stats reports percent of one core)."""
-    out = subprocess.run(["docker", "stats", "--no-stream", "--format", "{{.Name}} {{.CPUPerc}}"],
-                         capture_output=True, text=True, check=True).stdout
-    usage = {}
-    for line in out.splitlines():
-        name, percent = line.rsplit(" ", 1)
-        service = "k6" if "-k6-" in name else name.removeprefix("scaling-ladder-").removesuffix("-1")
-        usage[service] = round(float(percent.rstrip("%")) / 100, 2)
-    return usage
 
 
 def timed_run(rate):
@@ -69,9 +56,10 @@ def main():
                 result["cpuCores"] = usage
                 runs.append({"step": step, "repeat": repeat, **result})
                 hit = result["perRequest"]["cacheHitRate"]
+                api = sum(v for k, v in usage.items() if k.startswith("api-"))  # all instances together
                 print(f"  #{repeat} {rate:>6g}/s  p99 {result['latencyMs']['p99']:>8} ms  dropped {result['dropped']:>5}  "
                       f"{'ok      ' if result['sustained'] else 'too much'}  rows/req {result['perRequest']['rowsRead']:>6}  "
-                      f"{'' if hit is None else f'hits {hit:.0%}  '}cpu api {usage.get('api')} db {usage.get('db')} "
+                      f"{'' if hit is None else f'hits {hit:.0%}  '}cpu api {api:.2f} db {usage.get('db')} "
                       f"redis {usage.get('redis')} k6 {usage.get('k6')}", flush=True)
 
     commit = run("git", "rev-parse", "--short", "HEAD").strip()
