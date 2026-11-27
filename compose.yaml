@@ -95,6 +95,8 @@ services:
     profiles: ["load"]
     environment:
       TARGET: ${TARGET:-http://api:8080}
+      SHIPMENTS: ${SHIPMENTS:-1000000}
+      CUSTOMERS: ${CUSTOMERS:-100000}
     volumes:
       - ./load:/load:ro
 
