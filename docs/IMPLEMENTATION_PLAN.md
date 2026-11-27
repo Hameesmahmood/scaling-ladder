@@ -114,7 +114,7 @@ breaks. The ladder itself is the performance evidence; these cover correctness a
 | Concept | With it | Switched off, this breaks |
 | --- | --- | --- |
 | Indexes | The lookup plan is an index scan | The plan is a sequential scan over 10 million rows |
-| Connection pooling | 200 requests open at most the pool size of connections | 200 requests open 200 connections |
+| Connection pooling | 50 concurrent requests open at most the pool's 5 connections | 50 requests open 50 connections |
 | Cache-aside and TTL | A second read doesn't query Postgres; after the TTL it does | Every read queries Postgres |
 | Invalidation | A read straight after a write sees the new status | The read returns the old status until the TTL expires (stale reads counted in the load test too: `scripts/stale_reads.py`) |
 | Failing fast when Redis is down | Reads and writes carry on through Postgres, each in milliseconds | Requests queue for the missing Redis and each waits out a 5-second timeout |
